@@ -168,7 +168,7 @@ def get_sn_question(db: Session, question_sn: int):
 # 分页查找问题
 def get_questions(db: Session, page: int, limit: int):
     skip = (page - 1) * limit
-    return db.query(Question).offset(skip).limit(limit).all()
+    return db.query(Question).order_by(Question.date.desc()).offset(skip).limit(limit).all()
 
 
 # 管理员删除回复
