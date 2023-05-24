@@ -168,7 +168,7 @@ def get_sn_question(db: Session, question_sn: int):
 # 分页查找问题
 def get_questions(db: Session, page: int, limit: int):
     skip = (page - 1) * limit
-    return db.query(Question).order_by(Question.date.desc()).offset(skip).limit(limit).all()
+    return db.query(Question).offset(skip).limit(limit).all()
 
 
 # 管理员删除回复
@@ -227,7 +227,7 @@ def get_reply(db: Session, question_sn: int, page: int, limit: int):
 
 # 通过问题分页查回复（新）
 def get_reply_by_question(db: Session, id: int, sn: int):
-    return db.query(Reply).filter(Reply.question_id == sn).offset(id - 1).first()
+    return db.query(Reply).filter(Reply.question_id == sn, Reply.status == "已通过").offset(id - 1).first()
 
 
 # 根据序号查回复
@@ -235,8 +235,6 @@ def get_reply_by_id(db: Session, id: int, student_number: str):
     reply = db.query(Reply).filter(Reply.id == id).first()
     if not reply:
         raise HTTPException(status_code=404, detail="此回复或已被删除")
-    if reply.source != student_number:
-        raise HTTPException(status_code=401, detail="权限不足，无法查看")
     return reply
 
 

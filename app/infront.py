@@ -184,8 +184,8 @@ def read_reply(id: int,
     return question
 
 
-# 通过问题查回复
-@infront.get("/question-reply", response_model=List[ReplyQuery], summary="通过问题查回复")
+# 通过问题查回复(筛选、搜索使用)
+@infront.get("/question-reply", response_model=List[ReplyQuery], summary="通过问题查回复", deprecated=True)
 def read_replies_by_question(
         sn: int,
         current_user=Depends(get_current_user),
@@ -230,14 +230,14 @@ def get_reply_(
     question = get_sn_question(db, sn)
     if not question:
         raise HTTPException(status_code=404, detail="此问题不存在")
-    if question.source != current_user.student_number:
-        raise HTTPException(status_code=401, detail="权限不足，无法查看")
     if question.status != "已通过":
         raise HTTPException(status_code=400, detail="审核未通过，暂无法回复")
     num = get_accessible_reply_num(db, sn)
     reply = get_reply_by_question(db,  id, sn)
     if not reply:
         raise HTTPException(status_code=404, detail="此回复不存在")
+    reply.source = ""
+    question.source = ""
     return {
         "message": "Success",
         "detail": "查询成功",
@@ -246,4 +246,29 @@ def get_reply_(
             "reply": reply,
             "question": question
         }
+    }
+
+
+@infront.get("/search", summary="搜索筛选")
+def search(
+    sn: int,
+    type: str,
+    db: Session = Depends(get_db),
+):
+    if type == "question":
+        data = get_sn(db, sn)
+        if not data:
+            raise HTTPException(status_code=404, detail="问题不存在")
+        if data.status != "已通过":
+            raise HTTPException(status_code=404, detail="此问题未通过")
+    elif type == "reply":
+        data = get_reply_by_id(db, sn, "")
+        if data.status != "已通过":
+            raise HTTPException(status_code=404, detail="此回复未通过")
+    else:
+        raise HTTPException(status_code=400, detail="搜索方式错误")
+    data.source = ""
+    return {
+        "message": "Success",
+        "data": data,
     }
